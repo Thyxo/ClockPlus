@@ -4,7 +4,7 @@ import {
 } from './clock.js';
 import { DEFAULTS, loadSettings, saveSettings, merge, getFile, putFile } from './settings.js';
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -128,8 +128,8 @@ function kpTimer() {
   if (kp) kp.timer = setTimeout(() => { kp = null; }, 8000);
 }
 function kpKey(x, y) {
-  const col = Math.min(2, Math.floor((x / innerWidth) * 3));
-  const row = Math.min(3, Math.floor((y / innerHeight) * 4));
+  const col = Math.min(2, Math.floor((x / lock.clientWidth) * 3));
+  const row = Math.min(3, Math.floor((y / lock.clientHeight) * 4));
   const key = row < 3 ? String(row * 3 + col + 1) : ['x', '0', 'ok'][col];
   if (key === 'x') { clearTimeout(kp.timer); kp = null; return; }
   if (key === 'ok') return kpFinish();
@@ -328,6 +328,7 @@ function openPanel() {
   panel.classList.remove('out');
   panel.hidden = false;
   syncPanel();
+  renderDiag();
 }
 function closePanel() {
   if (planDirty) {
@@ -495,6 +496,39 @@ async function shrink(file) {
   c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
   return await new Promise((res) => c.toBlob((b) => res(b || file), 'image/jpeg', 0.92));
 }
+
+/* ================= fuld højde fra hjemmeskærmen ================= */
+// Fra hjemmeskærmen (standalone, black-translucent) bliver siden ca. 59 pt for lav,
+// og iOS melder det ikke altid via innerHeight. Derfor får alle lag altid
+// skærmens fulde højde i px, når appen kører standalone i portræt.
+
+const isStandalone = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+let heightFixed = false;
+function fixHeight() {
+  const fix = isStandalone() && innerHeight > innerWidth && screen.height >= innerHeight;
+  heightFixed = fix;
+  for (const el of [document.body, lock, panel]) {
+    el.style.height = fix ? `${screen.height}px` : '';
+    el.style.bottom = fix ? 'auto' : '';
+  }
+  document.documentElement.style.height = fix ? `${screen.height}px` : '';
+  renderDiag();
+}
+function renderDiag() {
+  const el = $('#diag');
+  if (!el) return;
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;visibility:hidden;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)';
+  document.body.append(probe);
+  const cs = getComputedStyle(probe);
+  const sa = `${parseFloat(cs.paddingTop)}/${parseFloat(cs.paddingBottom)}`;
+  probe.remove();
+  el.textContent = `skærm ${screen.width}×${screen.height} · inner ${innerWidth}×${innerHeight} · app ${lock.clientHeight} · safe-area ${sa} · standalone ${isStandalone() ? 'ja' : 'nej'} · rettelse ${heightFixed ? 'TIL' : 'fra'}`;
+}
+fixHeight();
+for (const ev of ['resize', 'orientationchange', 'pageshow']) addEventListener(ev, fixHeight);
+document.addEventListener('visibilitychange', fixHeight);
+for (const ms of [100, 400, 1000, 2500]) setTimeout(fixHeight, ms);
 
 /* ================= start ================= */
 
