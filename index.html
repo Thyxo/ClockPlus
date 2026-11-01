@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Ur" />
+  <meta name="format-detection" content="telephone=no,date=no,address=no,email=no" />
+  <title>Ur</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- ================= LÅSESKÆRM ================= -->
+  <main class="lock" id="lock">
+    <!-- Baggrunden er et selvstændigt lag – teksten ligger ovenpå -->
+    <div class="wall" id="wall"></div>
+    <div class="wall-dim" id="wallDim"></div>
+
+    <div class="content" id="content">
+      <svg class="padlock" id="padlock" viewBox="0 0 24 30" aria-hidden="true">
+        <path d="M6.5 12V8.6a5.5 5.5 0 0 1 11 0V12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" />
+        <rect x="3" y="12" width="18" height="15" rx="3.6" fill="currentColor" />
+      </svg>
+      <div class="date" id="date"></div>
+      <div class="clock" id="clock"><span id="clockText">00.00</span></div>
+    </div>
+
+    <div class="qbtns" id="qbtns">
+      <button class="qbtn" type="button" aria-label="Lommelygte">
+        <svg viewBox="0 0 24 24"><path d="M8 2.5h8a1 1 0 0 1 1 1V6c0 .9-.4 1.7-1 2.3l-1.2 1.2a2 2 0 0 0-.6 1.4V20a2 2 0 0 1-2 2h-.4a2 2 0 0 1-2-2v-9.1a2 2 0 0 0-.6-1.4L8 8.3A3.2 3.2 0 0 1 7 6V3.5a1 1 0 0 1 1-1Z" fill="currentColor"/><circle cx="12" cy="13.5" r="1.1" fill="#000" opacity=".55"/></svg>
+      </button>
+      <button class="qbtn" type="button" aria-label="Kamera">
+        <svg viewBox="0 0 24 24"><path d="M9 4.5h6l1.5 2H19a2.5 2.5 0 0 1 2.5 2.5v8.5A2.5 2.5 0 0 1 19 20H5a2.5 2.5 0 0 1-2.5-2.5V9A2.5 2.5 0 0 1 5 6.5h2.5Z" fill="currentColor"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="1.6"/></svg>
+      </button>
+    </div>
+    <div class="homebar" id="homebar"></div>
+
+    <!-- Kode-skærm (stryg op) -->
+    <section class="pass" id="pass" hidden>
+      <div class="pass-title" id="passTitle">Indtast kode</div>
+      <div class="pass-dots" id="passDots"></div>
+      <div class="pass-pad" id="passPad"></div>
+      <div class="pass-foot">
+        <button type="button" class="pass-link" id="passSos">Nødopkald</button>
+        <button type="button" class="pass-link" id="passCancel">Annuller</button>
+      </div>
+    </section>
+
+    <!-- "Slukket" skærm -->
+    <div class="black" id="black" hidden></div>
+  </main>
+
+  <!-- ================= HEMMELIGT PANEL ================= -->
+  <div class="panel" id="panel" hidden>
+    <div class="sheet">
+      <header class="p-head">
+        <div class="p-badge" id="pBadge">RIGTIG TID</div>
+        <button class="p-done" id="pDone" type="button">Færdig</button>
+      </header>
+      <div class="p-status">
+        <div><span class="lbl">Viser</span><b id="pShown">--.--</b></div>
+        <div><span class="lbl">Rigtig</span><b id="pReal">--.--</b></div>
+      </div>
+      <div class="p-desc" id="pDesc"></div>
+
+      <nav class="tabs" id="tabs">
+        <button data-tab="time" class="on" type="button">Tid</button>
+        <button data-tab="secret" type="button">Hemmelig</button>
+        <button data-tab="look" type="button">Udseende</button>
+        <button data-tab="more" type="button">Mere</button>
+      </nav>
+
+      <!-- ---------- TID ---------- -->
+      <section class="pane" data-pane="time">
+        <div class="seg" data-seg="plan.kind">
+          <button data-v="real" type="button">Rigtig</button>
+          <button data-v="offset" type="button">Frem/tilbage</button>
+          <button data-v="fixed" type="button">Tidspunkt</button>
+        </div>
+
+        <div class="box" data-show="plan.kind=offset">
+          <h3>Minutter frem eller tilbage</h3>
+          <div class="chips" id="offChips"></div>
+          <div class="stepper">
+            <button type="button" data-step="-1">−</button>
+            <input type="number" inputmode="numeric" data-s="plan.offsetMin" />
+            <span>min</span>
+            <button type="button" data-step="1">+</button>
+          </div>
+        </div>
+
+        <div class="box" data-show="plan.kind=fixed">
+          <h3>Bestemt tidspunkt</h3>
+          <input class="time-in" type="time" data-s="plan.fixed" />
+          <div class="chips" id="fixChips"></div>
+        </div>
+
+        <div class="box" data-show="plan.kind!=real">
+          <h3>Bagefter</h3>
+          <div class="radios" data-seg="plan.behavior" id="behRadios"></div>
+          <div data-show="plan.behavior=glide|jump|wait">
+            <h4 id="durLbl">Over hvor lang tid</h4>
+            <div class="chips" data-seg="plan.durMin" id="durChips"></div>
+          </div>
+          <p class="hint" id="behHint"></p>
+        </div>
+        <p class="hint">Tiden starter, når du trykker <b>Færdig</b>.</p>
+      </section>
+
+      <!-- ---------- HEMMELIG ---------- -->
+      <section class="pane" data-pane="secret" hidden>
+        <div class="box">
+          <h3>Langt tryk på uret (½ sek.)</h3>
+          <div class="radios" data-seg="press">
+            <button data-v="keypad" type="button">Usynligt tastatur – tast tiden</button>
+            <button data-v="preset" type="button">Sæt den gemte tid</button>
+            <button data-v="real" type="button">Tilbage til rigtig tid</button>
+            <button data-v="off" type="button">Fra</button>
+          </div>
+          <div data-show="press=keypad" class="kp-help">
+            <div class="kp-mini">
+              <i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i><i>8</i><i>9</i><i class="x">✕</i><i>0</i><i class="x">✓</i>
+            </div>
+            <p class="hint">Hele skærmen er et usynligt tastatur i 8 sek. Tast <b>4 cifre</b> (fx 0 9 0 0 = 09.00) – så skifter tiden. 1-2 cifre + ✓ = kun minutter. ✕ = annullér.</p>
+          </div>
+          <div data-show="press=preset">
+            <h4>Gemt tid</h4>
+            <input class="time-in" type="time" data-s="presetTime" />
+          </div>
+        </div>
+
+        <div class="box">
+          <h3>Den hemmelige tid bagefter</h3>
+          <div class="radios" data-seg="secretBehavior" id="secBehRadios"></div>
+          <div data-show="secretBehavior=glide|jump|wait">
+            <div class="chips" data-seg="secretDur" id="secDurChips"></div>
+          </div>
+        </div>
+
+        <div class="box">
+          <h3>Hvornår skifter tiden</h3>
+          <div class="seg" data-seg="applyOn">
+            <button data-v="now" type="button">Med det samme</button>
+            <button data-v="wake" type="button">Når skærmen vækkes</button>
+          </div>
+          <p class="hint">"Når skærmen vækkes": dobbelttryk → sort skærm, tast i mørket, giv telefonen videre – de trykker, og tiden er ændret.</p>
+          <label class="row"><span>Hængelåsen blinker ved ok</span><input type="checkbox" class="sw" data-s="confirm" data-on="lock" data-off="none" /></label>
+        </div>
+
+        <div class="box">
+          <h3>Kode-skærm</h3>
+          <label class="row"><span>Stryg op viser kode-skærm</span><input type="checkbox" class="sw" data-s="passcode" /></label>
+          <label class="row" data-show="passcode=true"><span>Koden sætter tiden (TTMM)</span><input type="checkbox" class="sw" data-s="passcodeSets" /></label>
+          <div class="seg" data-seg="passcodeLen" data-show="passcode=true">
+            <button data-v="4" type="button">4 cifre</button>
+            <button data-v="6" type="button">6 cifre</button>
+          </div>
+          <p class="hint">Tast fx 0900 som "kode" – den ryster som forkert kode, og når du trykker Annuller, står der 09.00.</p>
+        </div>
+
+        <div class="box">
+          <h3>Sort skærm</h3>
+          <label class="row"><span>Dobbelttryk slukker skærmen</span><input type="checkbox" class="sw" data-s="sleep" /></label>
+          <label class="row"><span>Start med sort skærm</span><input type="checkbox" class="sw" data-s="startBlack" /></label>
+        </div>
+      </section>
+
+      <!-- ---------- UDSEENDE ---------- -->
+      <section class="pane" data-pane="look" hidden>
+        <div class="box">
+          <h3>Baggrund</h3>
+          <div class="wall-row">
+            <label class="btn">Vælg billede<input type="file" accept="image/*" id="wallFile" hidden /></label>
+            <button class="btn ghost" type="button" id="wallClear">Fjern</button>
+          </div>
+          <p class="hint">Brug samme billede som din rigtige låseskærm (fra Fotos) – ikke et screenshot, så kommer uret med to gange.</p>
+          <label class="range"><span>Zoom</span><input type="range" min="100" max="300" data-s="wall.zoom" /></label>
+          <label class="range"><span>Vandret</span><input type="range" min="0" max="100" data-s="wall.x" /></label>
+          <label class="range"><span>Lodret</span><input type="range" min="0" max="100" data-s="wall.y" /></label>
+          <label class="range"><span>Mørkere</span><input type="range" min="0" max="60" data-s="wall.dim" /></label>
+        </div>
+
+        <div class="box">
+          <h3>Skrift</h3>
+          <div class="fonts" data-seg="font">
+            <button data-v="sf" type="button" class="f-sf">12</button>
+            <button data-v="rounded" type="button" class="f-rounded">12</button>
+            <button data-v="serif" type="button" class="f-serif">12</button>
+            <button data-v="condensed" type="button" class="f-condensed">12</button>
+            <button data-v="mono" type="button" class="f-mono">12</button>
+          </div>
+          <label class="range"><span>Tykkelse</span><input type="range" min="100" max="900" step="10" data-s="weight" /></label>
+          <label class="range"><span>Størrelse</span><input type="range" min="60" max="140" data-s="size" /></label>
+          <label class="range"><span>Højde</span><input type="range" min="100" max="200" data-s="stretch" /></label>
+          <label class="range"><span>Placering</span><input type="range" min="-60" max="200" data-s="clockY" /></label>
+          <div class="colors" id="colors"></div>
+          <label class="row"><span>Glas-effekt (iOS 26)</span><input type="checkbox" class="sw" data-s="glass" /></label>
+        </div>
+
+        <div class="box">
+          <h3>Format</h3>
+          <div class="seg" data-seg="sep">
+            <button data-v="." type="button">21.16</button>
+            <button data-v=":" type="button">21:16</button>
+          </div>
+          <label class="row"><span>24-timers ur</span><input type="checkbox" class="sw" data-s="h24" /></label>
+          <label class="row" data-show="h24=true"><span>Nul foran (09.05)</span><input type="checkbox" class="sw" data-s="pad" /></label>
+          <h4>Linjen over uret</h4>
+          <div class="seg" data-seg="dateMode">
+            <button data-v="date" type="button">Dato</button>
+            <button data-v="text" type="button">Egen tekst</button>
+            <button data-v="none" type="button">Ingen</button>
+          </div>
+          <input class="text-in" type="text" data-s="dateText" data-show="dateMode=text" />
+          <label class="row" data-show="dateMode=date"><span>Stort forbogstav</span><input type="checkbox" class="sw" data-s="dateCap" /></label>
+        </div>
+
+        <div class="box">
+          <h3>Elementer</h3>
+          <label class="row"><span>Hængelås</span><input type="checkbox" class="sw" data-s="showLock" /></label>
+          <label class="row"><span>Lommelygte og kamera</span><input type="checkbox" class="sw" data-s="showButtons" /></label>
+          <label class="row"><span>Hjemmebjælke</span><input type="checkbox" class="sw" data-s="showBar" /></label>
+        </div>
+      </section>
+
+      <!-- ---------- MERE ---------- -->
+      <section class="pane" data-pane="more" hidden>
+        <div class="box">
+          <h3>Genveje</h3>
+          <ul class="list">
+            <li><b>Panel:</b> 5 hurtige tryk øverst til højre</li>
+            <li><b>Panik:</b> hold øverst til venstre i 1 sek. → rigtig tid</li>
+            <li><b>Hemmelig tid:</b> langt tryk på uret</li>
+            <li><b>Sort skærm:</b> dobbelttryk · tryk vækker</li>
+            <li><b>Kode-skærm:</b> stryg op</li>
+          </ul>
+        </div>
+        <div class="box">
+          <button class="btn danger wide" type="button" id="panic">PANIK – rigtig tid nu</button>
+          <button class="btn ghost wide" type="button" id="resetAll">Nulstil alle indstillinger</button>
+        </div>
+        <div class="box">
+          <h3>Installér</h3>
+          <p class="hint">Safari → Del → <b>Føj til hjemmeskærm</b>. Åbn fra hjemmeskærmen for fuld skærm. Virker offline.</p>
+          <p class="hint">Bemærk: iPhonens egen statuslinje viser den rigtige tid i hjørnet. Hold telefonen så hjørnet ikke er i fokus, eller vælg en lys baggrund foroven.</p>
+          <p class="hint" id="ver"></p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
