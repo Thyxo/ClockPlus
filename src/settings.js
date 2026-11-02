@@ -20,6 +20,11 @@ export const DEFAULTS = {
   passcodeLen: 6,
   sleep: true, // dobbelttryk → sort skærm, tryk → væk
   startBlack: false,
+  rollBtn: true, // hemmelig knap: rul synligt til rigtig tid
+  rollSide: 'right', // left | right
+  rollY: 50, // lodret placering i %
+  rollSecs: 4,
+  rollTaps: 1,
 
   // Udseende
   font: 'sf', // sf | rounded | serif | condensed | mono
@@ -35,6 +40,9 @@ export const DEFAULTS = {
   dateMode: 'date', // date | text | none
   dateText: 'Fyldt op · 14°',
   dateCap: true,
+  dateShort: false, // man. 2. nov. (som iOS ved det høje ur)
+  footText: '', // lille tekst i bunden (fx dit navn)
+  showGrabber: true, // lille streg under batteriet (kontrolcenter)
   showLock: true,
   showButtons: true,
   showBar: true,

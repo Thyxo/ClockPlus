@@ -79,6 +79,14 @@ export function offsetAt(anchor, now) {
   }
 }
 
+// Rul synligt til rigtig tid på få sekunder (den hemmelige knap): den viste tid
+// tæller lineært ned (eller op), så man ser minutterne skifte et for et.
+export function rollAnchor(anchor, now, secs = 4) {
+  const off = offsetAt(anchor, now);
+  if (Math.abs(off) < 1000) return null;
+  return { t0: now, offset0: off, behavior: 'glide', durMin: Math.max(0.5, secs) / 60, roll: true };
+}
+
 export function shownTime(anchor, now) {
   return now + offsetAt(anchor, now);
 }
@@ -110,8 +118,12 @@ export function formatClock(t, { h24 = true, sep = '.', pad = true } = {}) {
   return hs + sep + String(d.getMinutes()).padStart(2, '0');
 }
 
-export function formatDate(t, { cap = true } = {}) {
+const DAYS_SHORT = ['søn.', 'man.', 'tirs.', 'ons.', 'tors.', 'fre.', 'lør.'];
+const MONTHS_SHORT = ['jan.', 'feb.', 'mar.', 'apr.', 'maj', 'jun.', 'jul.', 'aug.', 'sep.', 'okt.', 'nov.', 'dec.'];
+
+export function formatDate(t, { cap = true, short = false } = {}) {
   const d = new Date(t);
+  if (short) return `${DAYS_SHORT[d.getDay()]} ${d.getDate()}. ${MONTHS_SHORT[d.getMonth()]}`;
   const s = `${DAYS[d.getDay()]} ${d.getDate()}. ${MONTHS[d.getMonth()]}`;
   return cap ? s[0].toUpperCase() + s.slice(1) : s;
 }

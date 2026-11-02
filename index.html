@@ -33,14 +33,14 @@
     </div>
 
     <div class="qbtns" id="qbtns">
-      <button class="qbtn" type="button" aria-label="Lommelygte">
-        <svg viewBox="0 0 24 24"><path d="M8 2.5h8a1 1 0 0 1 1 1V6c0 .9-.4 1.7-1 2.3l-1.2 1.2a2 2 0 0 0-.6 1.4V20a2 2 0 0 1-2 2h-.4a2 2 0 0 1-2-2v-9.1a2 2 0 0 0-.6-1.4L8 8.3A3.2 3.2 0 0 1 7 6V3.5a1 1 0 0 1 1-1Z" fill="currentColor"/><circle cx="12" cy="13.5" r="1.1" fill="#000" opacity=".55"/></svg>
-      </button>
-      <button class="qbtn" type="button" aria-label="Kamera">
-        <svg viewBox="0 0 24 24"><path d="M9 4.5h6l1.5 2H19a2.5 2.5 0 0 1 2.5 2.5v8.5A2.5 2.5 0 0 1 19 20H5a2.5 2.5 0 0 1-2.5-2.5V9A2.5 2.5 0 0 1 5 6.5h2.5Z" fill="currentColor"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="1.6"/></svg>
-      </button>
+      <!-- Symbolerne er klippet ud af et skærmbillede af en rigtig iOS 26-låseskærm -->
+      <button class="qbtn" type="button" aria-label="Lommelygte"><img class="g-flash" src="icons/flashlight.png" alt="" draggable="false" /></button>
+      <button class="qbtn" type="button" aria-label="Kamera"><img class="g-cam" src="icons/camera.png" alt="" draggable="false" /></button>
     </div>
+    <div class="foot" id="foot"></div>
     <div class="homebar" id="homebar"></div>
+    <div class="grabber" id="grabber"></div>
+    <div class="rollzone" id="rollzone"></div>
 
     <!-- Kode-skærm (stryg op) -->
     <section class="pass" id="pass" hidden>
@@ -111,11 +111,34 @@
           </div>
           <p class="hint" id="behHint"></p>
         </div>
-        <p class="hint">Tiden starter, når du trykker <b>Færdig</b>.</p>
+        <p class="hint">Tiden starter, når du trykker <b>Færdig</b> (også igen efter den hemmelige knap har rullet den tilbage).</p>
       </section>
 
       <!-- ---------- HEMMELIG ---------- -->
       <section class="pane" data-pane="secret" hidden>
+        <div class="box">
+          <h3>Hemmelig knap – rul til rigtig tid</h3>
+          <label class="row"><span>Slået til</span><input type="checkbox" class="sw" data-s="rollBtn" /></label>
+          <div data-show="rollBtn=true">
+            <div class="seg" data-seg="rollSide">
+              <button data-v="left" type="button">Venstre side</button>
+              <button data-v="right" type="button">Højre side</button>
+            </div>
+            <label class="range"><span>Lodret</span><input type="range" min="15" max="85" data-s="rollY" /></label>
+            <h4>Varighed</h4>
+            <div class="chips" data-seg="rollSecs">
+              <button data-v="2" type="button">2 s</button><button data-v="3" type="button">3 s</button><button data-v="4" type="button">4 s</button><button data-v="5" type="button">5 s</button><button data-v="8" type="button">8 s</button>
+            </div>
+            <h4>Tryk</h4>
+            <div class="seg" data-seg="rollTaps">
+              <button data-v="1" type="button">1 tryk</button>
+              <button data-v="2" type="button">2 tryk</button>
+            </div>
+            <button class="btn ghost wide" type="button" id="rollShow">Vis knappen i 2 sek.</button>
+            <p class="hint">Tryk på den usynlige knap i kanten → minutterne tæller synligt ned (eller op) til den rigtige tid, fx 07.41 → 07.36 på 4 sek.</p>
+          </div>
+        </div>
+
         <div class="box">
           <h3>Langt tryk på uret (½ sek.)</h3>
           <div class="radios" data-seg="press">
@@ -219,7 +242,10 @@
             <button data-v="none" type="button">Ingen</button>
           </div>
           <input class="text-in" type="text" data-s="dateText" data-show="dateMode=text" />
+          <label class="row" data-show="dateMode=date"><span>Kort dato (man. 2. nov.)</span><input type="checkbox" class="sw" data-s="dateShort" /></label>
           <label class="row" data-show="dateMode=date"><span>Stort forbogstav</span><input type="checkbox" class="sw" data-s="dateCap" /></label>
+          <h4>Tekst i bunden</h4>
+          <input class="text-in" type="text" data-s="footText" placeholder="Fx dit navn (tom = ingen)" />
         </div>
 
         <div class="box">
@@ -227,6 +253,7 @@
           <label class="row"><span>Hængelås</span><input type="checkbox" class="sw" data-s="showLock" /></label>
           <label class="row"><span>Lommelygte og kamera</span><input type="checkbox" class="sw" data-s="showButtons" /></label>
           <label class="row"><span>Hjemmebjælke</span><input type="checkbox" class="sw" data-s="showBar" /></label>
+          <label class="row"><span>Streg under batteriet</span><input type="checkbox" class="sw" data-s="showGrabber" /></label>
         </div>
       </section>
 

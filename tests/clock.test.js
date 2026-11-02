@@ -73,3 +73,26 @@ test('formater', () => {
   assert.equal(formatClock(new Date(2026, 0, 5, 21, 5).getTime(), { h24: false }), '9.05');
   assert.equal(formatDate(t, { cap: false }), 'mandag 5. januar');
 });
+
+test('hemmelig knap: +5 min ruller synligt ned til rigtig tid på 4 sek.', async () => {
+  const { rollAnchor } = await import('../src/clock.js');
+  const a = makeAnchor({ kind: 'offset', offsetMin: 5, behavior: 'keep' }, T0);
+  const t1 = T0 + 30_000;
+  const r = rollAnchor(a, t1, 4);
+  assert.equal(formatClock(shownTime(r, t1)), '21.22');
+  const seen = new Set();
+  let prev = Infinity;
+  for (let ms = 0; ms <= 4000; ms += 40) {
+    const v = shownTime(r, t1 + ms);
+    assert.ok(v <= prev); // tæller ned
+    prev = v;
+    seen.add(formatClock(v));
+  }
+  assert.deepEqual([...seen], ['21.22', '21.21', '21.20', '21.19', '21.18', '21.17']);
+  assert.equal(offsetAt(r, t1 + 4000), 0);
+  assert.equal(rollAnchor(null, t1, 4), null);
+});
+
+test('kort dato', () => {
+  assert.equal(formatDate(new Date(2026, 10, 2).getTime(), { short: true }), 'man. 2. nov.');
+});

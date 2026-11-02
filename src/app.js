@@ -1,10 +1,10 @@
 import {
   BEHAVIORS, makeAnchor, shownTime, offsetAt, digitsToHM,
-  formatClock, formatDate, describeAnchor,
+  formatClock, formatDate, describeAnchor, rollAnchor,
 } from './clock.js';
 import { DEFAULTS, loadSettings, saveSettings, merge, getFile, putFile } from './settings.js';
 
-const VERSION = '1.0.1';
+const VERSION = '1.1.0';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -33,7 +33,7 @@ function render() {
   const t = shownTime(S.anchor, now);
   const c = formatClock(t, fmt());
   if (c !== lastClock) { clockText.textContent = c; lastClock = c; }
-  const d = S.dateMode === 'date' ? formatDate(t, { cap: S.dateCap }) : S.dateMode === 'text' ? S.dateText : '';
+  const d = S.dateMode === 'date' ? formatDate(t, { cap: S.dateCap, short: S.dateShort }) : S.dateMode === 'text' ? S.dateText : '';
   if (d !== lastDate) { dateEl.textContent = d; lastDate = d; }
   if (!panel.hidden) renderStatus(now);
 }
@@ -50,6 +50,12 @@ function applyLook() {
   padlock.style.visibility = S.showLock ? '' : 'hidden';
   $('#qbtns').hidden = !S.showButtons;
   $('#homebar').hidden = !S.showBar;
+  $('#grabber').hidden = !S.showGrabber;
+  $('#foot').textContent = S.footText;
+  const rz = $('#rollzone');
+  rz.style.left = S.rollSide === 'left' ? '0' : '';
+  rz.style.right = S.rollSide === 'right' ? '0' : '';
+  rz.style.top = `${S.rollY}%`;
   const w = S.wall;
   wall.style.setProperty('--wz', w.zoom / 100);
   wall.style.setProperty('--wall-x', `${w.x}%`);
@@ -93,6 +99,34 @@ function confirmBlink() {
 function applySecret(h, m) {
   startPlan(secretPlan(h, m), S.applyOn);
   confirmBlink();
+}
+
+/* ================= hemmelig knap: rul til rigtig tid ================= */
+
+let rollTimer = null;
+function startRoll() {
+  const a = rollAnchor(S.anchor, Date.now(), S.rollSecs);
+  if (!a) return;
+  S.anchor = a;
+  S.pending = null;
+  save();
+  // Tegn ofte, mens der rulles, så hvert minut ses
+  clearInterval(rollTimer);
+  rollTimer = setInterval(render, 40);
+  setTimeout(() => { clearInterval(rollTimer); S.anchor = null; save(); render(); }, S.rollSecs * 1000 + 200);
+}
+
+let rollTaps = [];
+function inRollZone(x, y) {
+  if (!S.rollBtn) return false;
+  const r = $('#rollzone').getBoundingClientRect();
+  return x >= r.left - 6 && x <= r.right + 6 && y >= r.top - 6 && y <= r.bottom + 6;
+}
+function rollTap() {
+  const t = performance.now();
+  rollTaps = rollTaps.filter((v) => t - v < 600);
+  rollTaps.push(t);
+  if (rollTaps.length >= S.rollTaps) { rollTaps = []; startRoll(); }
 }
 
 /* ================= sort skærm ================= */
@@ -300,6 +334,8 @@ function endPointer(e) {
   if (isBlack) { wake(); return; }
   if (!pass.hidden) return;
 
+  if (inRollZone(x, y)) { rollTap(); return; }
+
   if (S.sleep) {
     const t = performance.now();
     if (t - lastTap < 320) { lastTap = 0; sleep(); return; }
@@ -331,7 +367,8 @@ function openPanel() {
   renderDiag();
 }
 function closePanel() {
-  if (planDirty) {
+  // Færdig starter planen, hvis den er ændret – eller hvis den er løbet ud (fx efter den hemmelige knap)
+  if (planDirty || (!S.anchor && !S.pending && S.plan.kind !== 'real')) {
     if (S.plan.kind === 'real') { S.anchor = null; S.pending = null; } else startPlan(S.plan, 'now');
   }
   save();
@@ -457,6 +494,13 @@ panel.addEventListener('click', (e) => {
     S = merge(DEFAULTS, {});
     planDirty = false;
     save(); applyLook(); syncPanel();
+    return;
+  }
+  if (t.id === 'rollShow') {
+    const rz = $('#rollzone');
+    closePanel();
+    rz.classList.add('show');
+    setTimeout(() => rz.classList.remove('show'), 2000);
     return;
   }
   if (t.id === 'wallClear') { putFile('wallpaper', null).then(loadWall); }

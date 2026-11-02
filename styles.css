@@ -69,7 +69,15 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font-feature-settings: "ss01" 0;
   white-space: nowrap;
 }
-.lock.glass #clockText, .lock.glass .date { opacity: .72; mix-blend-mode: plus-lighter; text-shadow: 0 0 1px rgba(255,255,255,.4); }
+/* iOS 26 glas-ur: halvgennemsigtigt med lys kant foroven og mørkere bund */
+.lock.glass #clockText {
+  color: transparent;
+  background: linear-gradient(180deg, rgba(235,240,255,.82), rgba(170,180,210,.62) 60%, rgba(120,130,165,.7));
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-stroke: .6px rgba(255,255,255,.55);
+  filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.18));
+}
+.lock.glass .date { opacity: .8; mix-blend-mode: plus-lighter; }
 
 .f-sf, .font-sf #clockText, .font-sf .date { font-family: var(--sf); }
 .f-rounded, .font-rounded #clockText { font-family: ui-rounded, "SF Pro Rounded", var(--sf); }
@@ -78,21 +86,36 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .font-condensed #clockText { letter-spacing: -.02em; }
 .f-mono, .font-mono #clockText { font-family: ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: -.06em; }
 
+/* Målt på en rigtig iOS 26-låseskærm (1179×2556): knap 57 pt, centrum 75 pt fra siden
+   og 79 pt fra bunden. Lyst "liquid glass" med lys kant. */
 .qbtns {
-  position: absolute; left: 46px; right: 46px; bottom: calc(var(--bot) + 20px);
+  position: absolute; left: 46.5px; right: 46.5px; bottom: calc(var(--bot) + 17px);
   display: flex; justify-content: space-between; pointer-events: none;
 }
 .qbtn {
-  width: 50px; height: 50px; border-radius: 50%;
-  display: grid; place-items: center;
-  background: rgba(40, 40, 46, .42);
-  -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6);
-  box-shadow: inset 0 0 0 .5px rgba(255,255,255,.18);
-  transition: transform .18s ease, background .18s ease;
+  width: 57px; height: 57px; border-radius: 50%;
+  display: grid; place-items: center; position: relative;
+  background: linear-gradient(160deg, rgba(255,255,255,.2), rgba(255,255,255,.08) 55%, rgba(255,255,255,.14));
+  -webkit-backdrop-filter: blur(14px) saturate(1.5) brightness(1.08); backdrop-filter: blur(14px) saturate(1.5) brightness(1.08);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), inset 0 1px 1px rgba(255,255,255,.35), 0 1px 8px rgba(0,0,0,.08);
+  transition: transform .2s cubic-bezier(.3,.9,.4,1.3), background .2s ease;
   pointer-events: auto;
 }
-.qbtn svg { width: 22px; height: 22px; color: #fff; }
-.qbtn.down { transform: scale(1.18); background: rgba(255,255,255,.35); }
+.qbtn img { display: block; pointer-events: none; -webkit-user-drag: none; }
+.g-flash { width: 13.33px; height: 32px; margin-top: .3px; }
+.g-cam { width: 25.67px; height: 20.33px; margin-left: -.2px; }
+.qbtn.down { transform: scale(1.2); background: rgba(255,255,255,.42); }
+.foot {
+  position: absolute; left: 0; right: 0; bottom: calc(max(var(--bot), 34px) - 9px); text-align: center;
+  font-size: 13px; font-weight: 500; color: rgba(255,255,255,.92); pointer-events: none;
+}
+.grabber {
+  position: absolute; right: 25px; top: calc(var(--top) - 12px); width: 54px; height: 2.3px;
+  border-radius: 2px; background: rgba(255,255,255,.9); pointer-events: none;
+}
+.rollzone { position: absolute; width: 64px; height: 120px; margin-top: -60px; pointer-events: none; border-radius: 16px; transition: background .2s; }
+.rollzone.show { background: rgba(255,59,48,.45); }
+.lock.passcode .foot, .lock.passcode .grabber { opacity: 0; }
 .homebar {
   position: absolute; left: 50%; bottom: 8px; width: 134px; height: 5px; margin-left: -67px;
   border-radius: 3px; background: #fff; pointer-events: none;

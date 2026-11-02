@@ -1,6 +1,6 @@
 // Service worker: alt caches ved installation, så appen virker 100 % offline.
 // Hæv VERSION ved ændringer, så telefonen henter den nye udgave.
-const VERSION = 'clockplus-v2';
+const VERSION = 'clockplus-v3';
 const ASSETS = [
   './',
   'index.html',
@@ -14,6 +14,8 @@ const ASSETS = [
   'icons/icon-512.png',
   'icons/maskable-512.png',
   'icons/favicon-32.png',
+  'icons/flashlight.png',
+  'icons/camera.png',
 ];
 
 self.addEventListener('install', (e) => {
