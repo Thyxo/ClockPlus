@@ -3,8 +3,10 @@ import {
   formatClock, formatDate, describeAnchor, rollAnchor,
 } from './clock.js';
 import { DEFAULTS, loadSettings, saveSettings, merge, getFile, putFile } from './settings.js';
+import { createLink, cleanRoom } from './link.js';
+import { takeGoogle, visibleWord, resetMem } from './gnote.js';
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -35,6 +37,7 @@ function render() {
   if (c !== lastClock) { clockText.textContent = c; lastClock = c; }
   const d = S.dateMode === 'date' ? formatDate(t, { cap: S.dateCap, short: S.dateShort }) : S.dateMode === 'text' ? S.dateText : '';
   if (d !== lastDate) { dateEl.textContent = d; lastDate = d; }
+  renderNote(now);
   if (!panel.hidden) renderStatus(now);
 }
 
@@ -50,6 +53,7 @@ function applyLook() {
   padlock.style.visibility = S.showLock ? '' : 'hidden';
   $('#qbtns').hidden = !S.showButtons;
   $('#homebar').hidden = !S.showBar;
+  placeNote();
   $('#grabber').hidden = !S.showGrabber;
   $('#foot').textContent = S.footText;
   const rz = $('#rollzone');
@@ -334,6 +338,12 @@ function endPointer(e) {
   if (isBlack) { wake(); return; }
   if (!pass.hidden) return;
 
+  if (inNote(x, y)) {
+    const t = performance.now();
+    if (t - lastNoteTap < 350) { lastNoteTap = 0; hideNote(); } else lastNoteTap = t;
+    return;
+  }
+
   if (inRollZone(x, y)) { rollTap(); return; }
 
   if (S.sleep) {
@@ -426,6 +436,7 @@ function showMatch(expr) {
 
 function syncPanel() {
   if (panel.hidden) return;
+  renderLinkPanel();
   $$('[data-s]', panel).forEach((el) => {
     const v = get(el.dataset.s);
     if (el.type === 'checkbox') el.checked = el.dataset.on ? v === el.dataset.on : !!v;
@@ -503,6 +514,7 @@ panel.addEventListener('click', (e) => {
     setTimeout(() => rz.classList.remove('show'), 2000);
     return;
   }
+  if (t.id === 'gHide') { hideNote(); return; }
   if (t.id === 'wallClear') { putFile('wallpaper', null).then(loadWall); }
 });
 
@@ -511,7 +523,7 @@ panel.addEventListener('input', (e) => {
   if (el.id === 'colorPick') { set('color', el.value); return; }
   if (!el.dataset.s || el.type === 'checkbox') return;
   const cur = get(el.dataset.s);
-  if (typeof cur === 'number') { if (el.value !== '' && !Number.isNaN(+el.value)) set(el.dataset.s, Number(el.value)); } else if (el.value) set(el.dataset.s, el.value);
+  if (typeof cur === 'number') { if (el.value !== '' && !Number.isNaN(+el.value)) set(el.dataset.s, Number(el.value)); } else if (el.value || el.type === 'text') set(el.dataset.s, el.value);
 });
 panel.addEventListener('change', (e) => {
   const el = e.target;
@@ -574,6 +586,103 @@ for (const ev of ['resize', 'orientationchange', 'pageshow']) addEventListener(e
 document.addEventListener('visibilitychange', fixHeight);
 for (const ms of [100, 400, 1000, 2500]) setTimeout(fixHeight, ms);
 
+/* ================= forbindelse + Google-fodnote ================= */
+// Relæet (src/link.js, uændret kopi fra Stopwatchplus). Fake Google skriver
+// google: { q, at } og googleLive: { q, at } til rummet. Uden rumkode: intet sker.
+
+const gnoteEl = $('#gnote');
+const LINK_TEXT = { off: 'Ingen kode', connecting: 'Forbinder …', online: 'Forbundet', offline: 'Offline' };
+let link = null;
+let linkStatus = 'off';
+let lastNoteTap = 0;
+let lastNote = null;
+const gOpts = () => ({ live: S.gLive, hideMin: S.gHideMin });
+
+function placeNote() {
+  const under = S.gPos === 'under';
+  if (under && gnoteEl.parentElement !== content) content.append(gnoteEl);
+  if (!under && gnoteEl.parentElement !== lock) $('#rollzone').after(gnoteEl);
+  gnoteEl.className = `gnote pos-${S.gPos}`;
+  gnoteEl.style.fontSize = `${S.gSize}px`;
+  gnoteEl.style.opacity = String(S.gOpacity / 100);
+  gnoteEl.style.fontFamily = S.gFont === 'clock' ? getComputedStyle(clockText).fontFamily : '';
+  lastNote = null;
+  renderNote(Date.now());
+}
+
+function renderNote(now) {
+  const w = S.gNote ? visibleWord(S.gMem, gOpts(), now) : '';
+  if (w === lastNote) return;
+  lastNote = w;
+  gnoteEl.textContent = w;
+  gnoteEl.hidden = !w;
+  if (!panel.hidden) renderLinkPanel();
+}
+
+function inNote(x, y) {
+  if (gnoteEl.hidden) return false;
+  const r = gnoteEl.getBoundingClientRect();
+  return x >= r.left - 24 && x <= r.right + 24 && y >= r.top - 16 && y <= r.bottom + 16;
+}
+
+function hideNote() {
+  if (S.gMem.word) { S.gMem.word.hidden = true; save(); }
+  renderNote(Date.now());
+}
+
+function onLinkState(state) {
+  if (takeGoogle(S.gMem, state, gOpts(), Date.now())) {
+    save();
+    renderNote(Date.now());
+    if (!panel.hidden) renderLinkPanel();
+  }
+}
+
+function startLink() {
+  if (link) link.close();
+  link = null;
+  linkStatus = 'off';
+  if (S.room.length >= 3) {
+    link = createLink({
+      room: S.room,
+      storeKey: 'clockplus-link',
+      onState: onLinkState,
+      onStatus: (st) => { linkStatus = st; if (!panel.hidden) renderLinkPanel(); },
+    });
+    linkStatus = link.status;
+  }
+  if (!panel.hidden) renderLinkPanel();
+}
+
+function setRoom(value) {
+  const room = cleanRoom(value);
+  $('#room').value = room;
+  if (room === S.room) return;
+  S.room = room;
+  resetMem(S.gMem, Date.now()); // kun ord efter skiftet tæller
+  save();
+  lastNote = null;
+  renderNote(Date.now());
+  startLink();
+}
+$('#room').addEventListener('change', (e) => setRoom(e.target.value));
+$('#room').addEventListener('keydown', (e) => { if (e.key === 'Enter') e.target.blur(); });
+
+function renderLinkPanel() {
+  const st = $('#linkStatus');
+  st.textContent = LINK_TEXT[linkStatus] || linkStatus;
+  st.className = `link-status ${linkStatus}`;
+  const room = $('#room');
+  if (document.activeElement !== room) room.value = S.room;
+  const w = S.gMem.word;
+  const el = $('#gLast');
+  if (!w) { el.textContent = S.room ? 'Intet nyt ord endnu.' : 'Skriv en rumkode for at modtage ord.'; return; }
+  const kl = new Date(w.since).toTimeString().slice(0, 5).replace(':', '.');
+  const shown = visibleWord(S.gMem, gOpts(), Date.now());
+  const state = !S.gNote ? 'fodnote slået fra' : shown ? 'vises' : w.hidden ? 'skjult' : 'udløbet';
+  el.textContent = `Sidste ord: "${w.q}"${w.live ? ' (live)' : ''} kl. ${kl} – ${state}`;
+}
+
 /* ================= start ================= */
 
 buildPass();
@@ -581,6 +690,7 @@ buildPanel();
 applyLook();
 loadWall();
 if (S.startBlack) sleep();
+startLink();
 setInterval(render, 250);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
 

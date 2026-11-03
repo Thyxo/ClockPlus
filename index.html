@@ -41,6 +41,8 @@
     <div class="homebar" id="homebar"></div>
     <div class="grabber" id="grabber"></div>
     <div class="rollzone" id="rollzone"></div>
+    <!-- Google-fodnote: søgeordet fra Fake Google som diskret tekst på baggrunden -->
+    <div class="gnote pos-bottom" id="gnote" hidden></div>
 
     <!-- Kode-skærm (stryg op) -->
     <section class="pass" id="pass" hidden>
@@ -259,6 +261,41 @@
 
       <!-- ---------- MERE ---------- -->
       <section class="pane" data-pane="more" hidden>
+        <div class="box">
+          <h3>Forbindelse</h3>
+          <input class="text-in" id="room" type="text" placeholder="Rumkode, fx mads-show" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <div class="row"><span>Status</span><span class="link-status" id="linkStatus">Ingen kode</span></div>
+          <p class="hint">Samme kode som i Noter+, Stopur og Lommeregner. Uden kode virker appen præcis som før.</p>
+        </div>
+
+        <div class="box">
+          <h3>Google-fodnote</h3>
+          <label class="row"><span>Vis Google-fodnote</span><input type="checkbox" class="sw" data-s="gNote" /></label>
+          <div data-show="gNote=true">
+            <p class="hint g-last" id="gLast">Intet ord endnu.</p>
+            <button class="btn ghost wide" type="button" id="gHide">Skjul ordet nu</button>
+            <label class="row"><span>Vis live (mens de skriver)</span><input type="checkbox" class="sw" data-s="gLive" /></label>
+            <h4>Placering</h4>
+            <div class="seg" data-seg="gPos">
+              <button data-v="bottom" type="button">Bund</button>
+              <button data-v="under" type="button">Under uret</button>
+              <button data-v="corner" type="button">Hjørne</button>
+            </div>
+            <label class="range"><span>Størrelse</span><input type="range" min="9" max="22" data-s="gSize" /></label>
+            <label class="range"><span>Synlighed</span><input type="range" min="8" max="90" data-s="gOpacity" /></label>
+            <h4>Skrift</h4>
+            <div class="seg" data-seg="gFont">
+              <button data-v="normal" type="button">Normal</button>
+              <button data-v="clock" type="button">Som uret</button>
+            </div>
+            <h4>Skjul automatisk efter</h4>
+            <div class="chips" data-seg="gHideMin">
+              <button data-v="2" type="button">2 min</button><button data-v="5" type="button">5 min</button><button data-v="10" type="button">10 min</button><button data-v="30" type="button">30 min</button><button data-v="0" type="button">Aldrig</button>
+            </div>
+            <p class="hint">Dobbelttryk på fodnoten skjuler den. Kun nye søgninger vises – et gammelt ord kommer ikke igen.</p>
+          </div>
+        </div>
+
         <div class="box">
           <h3>Genveje</h3>
           <ul class="list">

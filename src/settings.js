@@ -26,6 +26,17 @@ export const DEFAULTS = {
   rollSecs: 4,
   rollTaps: 1,
 
+  // Forbindelse (relæet, samme rumkode som Noter+/Stopur/Lommeregner) og Google-fodnote
+  room: '',
+  gNote: true, // vis Google-fodnote
+  gLive: false, // vis ordet mens de skriver (googleLive)
+  gPos: 'bottom', // bottom | under | corner
+  gSize: 12, // px
+  gOpacity: 25, // %
+  gFont: 'normal', // normal | clock
+  gHideMin: 10, // 0 = aldrig
+  gMem: { googleAt: 0, liveAt: 0, word: null }, // se src/gnote.js
+
   // Udseende
   font: 'sf', // sf | rounded | serif | condensed | mono
   weight: 600,
