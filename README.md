@@ -47,10 +47,17 @@ Fake Google (soeg.vercel.app) skriver tilskuerens søgning til relæet. ClockPlu
 2. **Google-fodnote** (standard til):
    - Placering: **Bund** (mellem lommelygte og kamera), **Under uret** eller **Hjørne** (øverst til venstre)
    - Størrelse, synlighed (standard 25 %) og skrift (normal / som uret)
+   - Farve: **Auto** (måler baggrundsbilledet bag ordet: mørk tekst på lys baggrund, lys på mørk), Lys eller Mørk
+   - **Test**-knap viser "fortnite" i 4 sek., så du kan se placering og synlighed
+   - Panelet viser, hvad der står i rummet lige nu, og hvorfor et ord evt. ignoreres
    - **Vis live**: ordet kommer, mens de skriver (`googleLive`)
    - **Skjul automatisk** efter 2/5/10/30 min (standard 10) eller aldrig
    - **Dobbelttryk på fodnoten** skjuler den. Panelet viser sidste ord og har *Skjul ordet nu*.
 3. Kun nye ord: et ord bruges kun, hvis dets `at` er nyere end det sidste (`gMem.googleAt` gemmes), så et gammelt ord ikke dukker op igen efter genstart. Ved ny rumkode tæller kun ord, der kommer derefter. Lange ord afkortes med "…".
+
+Fake Google skriver til rummet **magi**, medmindre linket har `?r=dinkode` – brug samme kode i ClockPlus.
+
+Relæets live-strøm sender kun ændringer, og iOS kan lukke den stille i en hjemmeskærm-app. Derfor henter ClockPlus også rummet hvert sekund, mens appen er fremme.
 
 Relæ: `https://relay-production-03f5.up.railway.app/r/{rum}` (`src/link.js` er en uændret kopi fra Stopwatchplus – ret dér og kopiér ind igen).
 

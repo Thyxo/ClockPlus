@@ -34,6 +34,7 @@ export const DEFAULTS = {
   gSize: 12, // px
   gOpacity: 25, // %
   gFont: 'normal', // normal | clock
+  gColor: 'auto', // auto (mørk på lys baggrund) | light | dark
   gHideMin: 10, // 0 = aldrig
   gMem: { googleAt: 0, liveAt: 0, word: null }, // se src/gnote.js
 

@@ -6,7 +6,7 @@ import { DEFAULTS, loadSettings, saveSettings, merge, getFile, putFile } from '.
 import { createLink, cleanRoom } from './link.js';
 import { takeGoogle, visibleWord, resetMem } from './gnote.js';
 
-const VERSION = '1.2.0';
+const VERSION = '1.2.1';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -70,12 +70,19 @@ function applyLook() {
 }
 
 let wallUrl = null;
+let wallImg = null; // samme billede, til at måle lysstyrken bag fodnoten
 async function loadWall() {
   const blob = await getFile('wallpaper');
   if (wallUrl) URL.revokeObjectURL(wallUrl);
   wallUrl = blob ? URL.createObjectURL(blob) : null;
   wall.classList.toggle('photo', !!wallUrl);
   wall.style.setProperty('--wall-img', wallUrl ? `url("${wallUrl}")` : 'none');
+  wallImg = null;
+  if (wallUrl) {
+    const img = new Image();
+    img.onload = () => { wallImg = img; lastNote = null; renderNote(Date.now()); };
+    img.src = wallUrl;
+  } else { lastNote = null; renderNote(Date.now()); }
 }
 
 /* ================= tids-planer ================= */
@@ -515,6 +522,7 @@ panel.addEventListener('click', (e) => {
     return;
   }
   if (t.id === 'gHide') { hideNote(); return; }
+  if (t.id === 'gTest') { closePanel(); setTimeout(testNote, 250); return; }
   if (t.id === 'wallClear') { putFile('wallpaper', null).then(loadWall); }
 });
 
@@ -596,6 +604,7 @@ let link = null;
 let linkStatus = 'off';
 let lastNoteTap = 0;
 let lastNote = null;
+let noteTest = ''; // "Test"-knappen i panelet
 const gOpts = () => ({ live: S.gLive, hideMin: S.gHideMin });
 
 function placeNote() {
@@ -611,12 +620,63 @@ function placeNote() {
 }
 
 function renderNote(now) {
-  const w = S.gNote ? visibleWord(S.gMem, gOpts(), now) : '';
+  const w = noteTest || (S.gNote ? visibleWord(S.gMem, gOpts(), now) : '');
   if (w === lastNote) return;
   lastNote = w;
   gnoteEl.textContent = w;
   gnoteEl.hidden = !w;
+  if (w) gnoteEl.classList.toggle('dark', S.gColor === 'dark' || (S.gColor === 'auto' && behindNoteIsLight()));
   if (!panel.hidden) renderLinkPanel();
+}
+
+// Måler baggrundsbilledets lysstyrke bag fodnoten (samme beskæring/zoom som .wall).
+// Lys baggrund → mørk tekst, så ordet altid kan ses.
+const probeCanvas = document.createElement('canvas');
+function behindNoteIsLight() {
+  if (!wallImg) return false; // standard-baggrunden er mørk
+  const W = lock.clientWidth;
+  const H = lock.clientHeight;
+  const r = gnoteEl.getBoundingClientRect();
+  const lr = lock.getBoundingClientRect();
+  if (!W || !H || !r.width) return false;
+  const k = 0.25;
+  probeCanvas.width = Math.ceil(W * k);
+  probeCanvas.height = Math.ceil(H * k);
+  const ctx = probeCanvas.getContext('2d', { willReadFrequently: true });
+  const iw = wallImg.naturalWidth;
+  const ih = wallImg.naturalHeight;
+  const s = Math.max(W / iw, H / ih);
+  const z = S.wall.zoom / 100;
+  const fx = S.wall.x / 100;
+  const fy = S.wall.y / 100;
+  const dw = iw * s;
+  const dh = ih * s;
+  const ox = W * fx;
+  const oy = H * fy;
+  const dx = ox + ((W - dw) * fx - ox) * z;
+  const dy = oy + ((H - dh) * fy - oy) * z;
+  ctx.clearRect(0, 0, probeCanvas.width, probeCanvas.height);
+  ctx.drawImage(wallImg, dx * k, dy * k, dw * z * k, dh * z * k);
+  const x0 = Math.max(0, Math.floor((r.left - lr.left - 6) * k));
+  const y0 = Math.max(0, Math.floor((r.top - lr.top - 4) * k));
+  const w = Math.max(1, Math.min(probeCanvas.width - x0, Math.ceil((r.width + 12) * k)));
+  const h = Math.max(1, Math.min(probeCanvas.height - y0, Math.ceil((r.height + 8) * k)));
+  let sum = 0;
+  let n = 0;
+  try {
+    const d = ctx.getImageData(x0, y0, w, h).data;
+    for (let i = 0; i < d.length; i += 4) { sum += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]; n++; }
+  } catch { return false; }
+  const lum = (sum / n / 255) * (1 - S.wall.dim / 100);
+  return lum > 0.5; // hvid ved 25 % ses bedst under 0.5, mørk over
+}
+
+let testTimer = null;
+function testNote() {
+  clearTimeout(testTimer);
+  noteTest = 'fortnite';
+  renderNote(Date.now());
+  testTimer = setTimeout(() => { noteTest = ''; renderNote(Date.now()); }, 4000);
 }
 
 function inNote(x, y) {
@@ -630,7 +690,10 @@ function hideNote() {
   renderNote(Date.now());
 }
 
+let roomGoogle = null; // det rummet sidst havde i "google" (til panelet)
 function onLinkState(state) {
+  if (state && state.google && state.google.q) roomGoogle = state.google;
+  if (!panel.hidden) renderLinkPanel();
   if (takeGoogle(S.gMem, state, gOpts(), Date.now())) {
     save();
     renderNote(Date.now());
@@ -650,9 +713,14 @@ function startLink() {
       onStatus: (st) => { linkStatus = st; if (!panel.hidden) renderLinkPanel(); },
     });
     linkStatus = link.status;
+    link.refresh();
   }
   if (!panel.hidden) renderLinkPanel();
 }
+
+// Relæets live-strøm sender kun ændringer (ikke den nuværende tilstand), og iOS kan lukke
+// den stille i en hjemmeskærm-app. Derfor spørger vi også selv hvert sekund, mens appen er fremme.
+setInterval(() => { if (link && document.visibilityState === 'visible') link.refresh(); }, 1000);
 
 function setRoom(value) {
   const room = cleanRoom(value);
@@ -676,6 +744,15 @@ function renderLinkPanel() {
   if (document.activeElement !== room) room.value = S.room;
   const w = S.gMem.word;
   const el = $('#gLast');
+  const kl0 = (t) => new Date(t).toTimeString().slice(0, 5).replace(':', '.');
+  const inRoom = $('#gRoom');
+  if (!S.room) inRoom.textContent = 'Ingen rumkode – Fake Google bruger rummet "magi", medmindre linket har ?r=…';
+  else if (!roomGoogle) inRoom.textContent = linkStatus === 'online' ? `Rummet "${S.room}" har ingen søgning endnu.` : `Henter rummet "${S.room}" …`;
+  else {
+    const at = Number(roomGoogle.at) || 0;
+    const why = at > S.gMem.googleAt ? '' : (w && w.at === at ? '' : ' – ignoreret: søgt før rumkoden blev sat (kun nye søgninger vises)');
+    inRoom.textContent = `I rummet nu: "${roomGoogle.q}" kl. ${kl0(at)}${why}`;
+  }
   if (!w) { el.textContent = S.room ? 'Intet nyt ord endnu.' : 'Skriv en rumkode for at modtage ord.'; return; }
   const kl = new Date(w.since).toTimeString().slice(0, 5).replace(':', '.');
   const shown = visibleWord(S.gMem, gOpts(), Date.now());

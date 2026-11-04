@@ -263,16 +263,18 @@
       <section class="pane" data-pane="more" hidden>
         <div class="box">
           <h3>Forbindelse</h3>
-          <input class="text-in" id="room" type="text" placeholder="Rumkode, fx mads-show" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <input class="text-in" id="room" type="text" placeholder="Rumkode, fx magi" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
           <div class="row"><span>Status</span><span class="link-status" id="linkStatus">Ingen kode</span></div>
-          <p class="hint">Samme kode som i Noter+, Stopur og Lommeregner. Uden kode virker appen præcis som før.</p>
+          <p class="hint">Samme kode som i Noter+, Stopur, Lommeregner og Fake Google. Fake Google bruger <b>magi</b>, medmindre linket har <b>?r=dinkode</b>. Uden kode virker appen præcis som før.</p>
         </div>
 
         <div class="box">
           <h3>Google-fodnote</h3>
           <label class="row"><span>Vis Google-fodnote</span><input type="checkbox" class="sw" data-s="gNote" /></label>
           <div data-show="gNote=true">
+            <p class="hint g-last" id="gRoom"></p>
             <p class="hint g-last" id="gLast">Intet ord endnu.</p>
+            <button class="btn ghost wide" type="button" id="gTest">Test: vis "fortnite" i 4 sek.</button>
             <button class="btn ghost wide" type="button" id="gHide">Skjul ordet nu</button>
             <label class="row"><span>Vis live (mens de skriver)</span><input type="checkbox" class="sw" data-s="gLive" /></label>
             <h4>Placering</h4>
@@ -283,6 +285,12 @@
             </div>
             <label class="range"><span>Størrelse</span><input type="range" min="9" max="22" data-s="gSize" /></label>
             <label class="range"><span>Synlighed</span><input type="range" min="8" max="90" data-s="gOpacity" /></label>
+            <h4>Farve</h4>
+            <div class="seg" data-seg="gColor">
+              <button data-v="auto" type="button">Auto</button>
+              <button data-v="light" type="button">Lys</button>
+              <button data-v="dark" type="button">Mørk</button>
+            </div>
             <h4>Skrift</h4>
             <div class="seg" data-seg="gFont">
               <button data-v="normal" type="button">Normal</button>
