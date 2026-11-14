@@ -47,12 +47,12 @@ function applyLook() {
   r.setProperty('--clock-color', S.color);
   r.setProperty('--clock-weight', S.weight);
   r.setProperty('--clock-size', S.size / 100);
-  r.setProperty('--clock-stretch', S.stretch / 100);
+  r.setProperty('--clock-stretch', S.font === 'tall' ? 1 : Math.max(1, S.stretch / 100));
   r.setProperty('--clock-y', `${S.clockY}px`);
   const appleTall = S.font === 'tall' && appleFont;
   const useCanvas = !appleTall && (S.font === 'tall' || S.glass);
   lock.className = `lock font-${S.font}${S.glass ? ' glass' : ''}${useCanvas ? ' canvas-clock' : ''}${appleTall ? ' apple-tall' : ''}${lock.classList.contains('passcode') ? ' passcode' : ''}`;
-  const tallH = Math.round(lock.clientHeight * 0.41 * (S.size / 100));
+  const tallH = Math.round(lock.clientHeight * 0.41 * (S.size / 100) * (S.stretch / 100));
   r.setProperty('--tall-h', `${tallH}px`);
   if (appleTall) fitAppleClock();
   dateEl.hidden = S.dateMode === 'none';
@@ -150,7 +150,7 @@ function fitAppleClock() {
   if (!(S.font === 'tall' && appleFont)) return;
   const r = document.documentElement.style;
   const W = lock.clientWidth;
-  const tallH = lock.clientHeight * 0.41 * (S.size / 100);
+  const tallH = lock.clientHeight * 0.41 * (S.size / 100) * (S.stretch / 100);
   r.setProperty('--ap-fs', '100px');
   const range = document.createRange();
   range.selectNodeContents(clockText);
