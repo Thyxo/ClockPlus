@@ -64,6 +64,10 @@ Relæ: `https://relay-production-03f5.up.railway.app/r/{rum}` (`src/link.js` er 
 Test: `curl -X POST -H 'Content-Type: text/plain' -d '{"google":{"q":"fortnite","at":'$(date +%s000)'}}' https://relay-production-03f5.up.railway.app/r/<rum>`
 
 ## Udseende
+**Hurtigt valg** (Panel → Udseende):
+- **iOS 26 høj glas**: det høje, smalle iOS 26-ur i "liquid glass" (lys top, mørkere bund, blød 3D-kant, lys kant foroven). Tallene tegnes som streger i `src/glassclock.js`, ikke med en skrift, så de bliver høje uden at blive forvrænget. Målt på en rigtig iOS 26-låseskærm: 86 % af bredden, 41 % af højden. Glassets farve følger baggrundsbilledet, når farven er hvid. Tykkelse og Størrelse virker også her.
+- **Klassisk**: SF Pro som før. Glas-effekten kan også slås til her.
+
 Baggrund (zoom/placering/mørkere), 5 skrifter som iOS (standard SF, rundet, serif/New York, smal, mono), tykkelse, størrelse, højde (iOS 26-"højt" ur), farve, glas-effekt, `21.16`/`21:16`, 12/24 t, dato/egen tekst/ingen, kort dato (man. 2. nov.), tekst i bunden, hængelås, streg under batteriet, lommelygte/kamera (symboler klippet ud af en rigtig iOS 26-låseskærm, glasknapper målt til 57 pt), hjemmebjælke.
 
 ## Kendte begrænsninger

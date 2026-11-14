@@ -6,6 +6,7 @@ Statisk PWA uden build: falsk iPhone-låseskærm (dansk UI) med hemmelig tidssti
 - `src/settings.js` – indstillinger i localStorage (`clockplus-v1`), baggrund i IndexedDB (`clockplus`/`files`/`wallpaper`).
 - `src/app.js` – DOM, bevægelser (5 tryk øverst til højre = panel, langt tryk på uret = hemmeligt input, stryg op = kode-skærm, dobbelttryk = sort skærm, hold øverst til venstre = panik, usynlig knap i venstre/højre kant = rul til rigtig tid) og panel.
 - `src/link.js` – relæ-forbindelse, uændret kopi fra Thyxo/Stopwatchplus (ret dér, kopiér hertil). `src/gnote.js` – Google-fodnoten (kun nyere `google.at` end `gMem.googleAt`). Testes med `npm test`.
+- `src/glassclock.js` – canvas-ur: iOS 26's høje ur som stregtegnede cifre + glas-effekt (også for almindelige skrifter). `scripts/make-icons.py` laver app-ikonerne.
 - `sw.js` – hæv `VERSION`, når filer ændres.
 - Vercel-projekt `clockplus` (team thyxo's projects), push til `main` udgiver.
 - UI-tekst på dansk. Baggrund og tekst skal forblive separate lag.

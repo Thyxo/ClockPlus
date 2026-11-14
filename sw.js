@@ -1,6 +1,6 @@
 // Service worker: alt caches ved installation, så appen virker 100 % offline.
 // Hæv VERSION ved ændringer, så telefonen henter den nye udgave.
-const VERSION = 'clockplus-v5';
+const VERSION = 'clockplus-v6';
 const ASSETS = [
   './',
   'index.html',
@@ -11,6 +11,7 @@ const ASSETS = [
   'src/settings.js',
   'src/link.js',
   'src/gnote.js',
+  'src/glassclock.js',
   'icons/apple-touch-icon.png',
   'icons/icon-192.png',
   'icons/icon-512.png',

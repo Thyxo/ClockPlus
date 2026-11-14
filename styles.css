@@ -69,15 +69,16 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font-feature-settings: "ss01" 0;
   white-space: nowrap;
 }
-/* iOS 26 glas-ur: halvgennemsigtigt med lys kant foroven og mørkere bund */
-.lock.glass #clockText {
-  color: transparent;
-  background: linear-gradient(180deg, rgba(235,240,255,.82), rgba(170,180,210,.62) 60%, rgba(120,130,165,.7));
-  -webkit-background-clip: text; background-clip: text;
-  -webkit-text-stroke: .6px rgba(255,255,255,.55);
-  filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.18));
-}
-.lock.glass .date { opacity: .8; mix-blend-mode: plus-lighter; }
+/* Glas-ur og det høje iOS 26-ur tegnes på et canvas (src/glassclock.js) */
+.clock { position: relative; }
+#clockCanvas { display: none; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+.lock.canvas-clock #clockCanvas { display: block; }
+.lock.canvas-clock #clockText { visibility: hidden; }
+/* Det høje ur: fylder ~86 % af bredden og ~41 % af højden som på iOS 26 */
+.lock.font-tall .clock { transform: none; width: 100vw; height: var(--tall-h, 41vh); margin-top: calc(6px + var(--clock-y)); }
+.lock.font-tall #clockText { display: none; }
+.lock.font-tall #clockCanvas { left: 0; top: 0; transform: none; }
+.lock.glass .date { color: var(--date-glass, rgba(220,228,248,.92)); }
 
 .f-sf, .font-sf #clockText, .font-sf .date { font-family: var(--sf); }
 .f-rounded, .font-rounded #clockText { font-family: ui-rounded, "SF Pro Rounded", var(--sf); }
@@ -254,9 +255,14 @@ input[type=number], .time-in, .text-in {
 .wall-row { display: flex; gap: 8px; }
 .wall-row .btn { flex: 1; }
 
-.fonts { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 8px; }
+.fonts { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 8px; }
 .fonts button { height: 54px; border-radius: 12px; background: #2c2c2e; font-size: 26px; font-weight: 600; }
 .fonts button.on { box-shadow: inset 0 0 0 2px var(--accent); }
+.f-tall { font-family: var(--sf); font-weight: 400 !important; transform: scaleY(1.45); letter-spacing: -1px; }
+.presets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.presets button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px 8px; border-radius: 14px; background: #2c2c2e; font-size: 13px; font-weight: 600; color: #d1d1d6; }
+.presets span { font-size: 30px; line-height: 1; color: #fff; font-weight: 600; }
+.pre-ios26 span { font-weight: 400; transform: scaleY(1.6); margin: 6px 0; color: #b8c6e8; letter-spacing: -1px; }
 .colors { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 4px; }
 .colors button, .colors label { width: 34px; height: 34px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); position: relative; overflow: hidden; }
 .colors .on { box-shadow: 0 0 0 2px #1c1c1e, 0 0 0 4px var(--accent); }

@@ -5,8 +5,9 @@ import {
 import { DEFAULTS, loadSettings, saveSettings, merge, getFile, putFile } from './settings.js';
 import { createLink, cleanRoom } from './link.js';
 import { takeGoogle, visibleWord, resetMem } from './gnote.js';
+import { renderClock, hexToRgb, mix } from './glassclock.js';
 
-const VERSION = '1.2.1';
+const VERSION = '1.3.0';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -34,7 +35,7 @@ function render() {
   const now = Date.now();
   const t = shownTime(S.anchor, now);
   const c = formatClock(t, fmt());
-  if (c !== lastClock) { clockText.textContent = c; lastClock = c; }
+  if (c !== lastClock) { clockText.textContent = c; lastClock = c; drawClock(); }
   const d = S.dateMode === 'date' ? formatDate(t, { cap: S.dateCap, short: S.dateShort }) : S.dateMode === 'text' ? S.dateText : '';
   if (d !== lastDate) { dateEl.textContent = d; lastDate = d; }
   renderNote(now);
@@ -48,7 +49,9 @@ function applyLook() {
   r.setProperty('--clock-size', S.size / 100);
   r.setProperty('--clock-stretch', S.stretch / 100);
   r.setProperty('--clock-y', `${S.clockY}px`);
-  lock.className = `lock font-${S.font}${S.glass ? ' glass' : ''}${lock.classList.contains('passcode') ? ' passcode' : ''}`;
+  const useCanvas = S.font === 'tall' || S.glass;
+  lock.className = `lock font-${S.font}${S.glass ? ' glass' : ''}${useCanvas ? ' canvas-clock' : ''}${lock.classList.contains('passcode') ? ' passcode' : ''}`;
+  r.setProperty('--tall-h', `${Math.round(lock.clientHeight * 0.41 * (S.size / 100))}px`);
   dateEl.hidden = S.dateMode === 'none';
   padlock.style.visibility = S.showLock ? '' : 'hidden';
   $('#qbtns').hidden = !S.showButtons;
@@ -69,6 +72,62 @@ function applyLook() {
   render();
 }
 
+/* ---------- canvas-ur (iOS 26 høj / glas) ---------- */
+const clockCanvas = $('#clockCanvas');
+let wallTint = null; // gennemsnitsfarve fra baggrunden
+
+// iOS farver glas-uret efter baggrunden. Hvid (standard) = automatisk farve.
+function clockTint() {
+  const base = [122, 148, 204];
+  const isWhite = /^#?f{6}$/i.test(S.color);
+  if (!isWhite) return hexToRgb(S.color);
+  if (!S.glass) return [255, 255, 255];
+  return wallTint ? mix(base, wallTint, 0.3) : base;
+}
+
+function measureWallTint() {
+  wallTint = null;
+  if (!wallImg) return;
+  try {
+    const c = document.createElement('canvas');
+    c.width = 24; c.height = 24;
+    const x = c.getContext('2d', { willReadFrequently: true });
+    x.drawImage(wallImg, 0, 0, wallImg.naturalWidth, wallImg.naturalHeight * 0.6, 0, 0, 24, 24);
+    const d = x.getImageData(0, 0, 24, 24).data;
+    const s = [0, 0, 0];
+    for (let i = 0; i < d.length; i += 4) { s[0] += d[i]; s[1] += d[i + 1]; s[2] += d[i + 2]; }
+    wallTint = s.map((v) => Math.round(v / (d.length / 4)));
+  } catch { wallTint = null; }
+}
+
+function drawClock() {
+  if (!(S.font === 'tall' || S.glass)) return;
+  const text = clockText.textContent;
+  const tint = clockTint();
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  if (S.glass) {
+    const t = mix(tint, [255, 255, 255], 0.55);
+    document.documentElement.style.setProperty('--date-glass', `rgba(${t[0]},${t[1]},${t[2]},0.92)`);
+  }
+  if (S.font === 'tall') {
+    const W = lock.clientWidth;
+    const H = clockEl.clientHeight;
+    renderClock(clockCanvas, {
+      text, cssW: W, cssH: H, dpr, mode: 'tall', glass: S.glass, tint,
+      stroke: 0.16 + (S.weight / 900) * 0.2,
+      widthFrac: Math.min(0.96, 0.86 * (S.size / 100)),
+    });
+  } else {
+    const cs = getComputedStyle(clockText);
+    const w = clockText.offsetWidth + 40;
+    const h = clockText.offsetHeight + 30;
+    // Canvas tegner i enhedspixels: skriftstørrelsen ganges med dpr
+    const font = `${cs.fontStyle} ${cs.fontWeight} ${parseFloat(cs.fontSize) * dpr}px ${cs.fontFamily}`;
+    renderClock(clockCanvas, { text, cssW: w, cssH: h, dpr, mode: 'font', font, glass: S.glass, tint });
+  }
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => drawClock());
+
 let wallUrl = null;
 let wallImg = null; // samme billede, til at måle lysstyrken bag fodnoten
 async function loadWall() {
@@ -80,9 +139,9 @@ async function loadWall() {
   wallImg = null;
   if (wallUrl) {
     const img = new Image();
-    img.onload = () => { wallImg = img; lastNote = null; renderNote(Date.now()); };
+    img.onload = () => { wallImg = img; measureWallTint(); drawClock(); lastNote = null; renderNote(Date.now()); };
     img.src = wallUrl;
-  } else { lastNote = null; renderNote(Date.now()); }
+  } else { wallTint = null; drawClock(); lastNote = null; renderNote(Date.now()); }
 }
 
 /* ================= tids-planer ================= */
@@ -521,6 +580,12 @@ panel.addEventListener('click', (e) => {
     setTimeout(() => rz.classList.remove('show'), 2000);
     return;
   }
+  if (t.dataset.preset) {
+    if (t.dataset.preset === 'ios26') Object.assign(S, { font: 'tall', glass: true, weight: 600, size: 100, stretch: 100, clockY: 0, color: '#ffffff', dateShort: true, showLock: false });
+    else Object.assign(S, { font: 'sf', glass: false, weight: 600, size: 100, stretch: 100, clockY: 0, color: '#ffffff', dateShort: false, showLock: true });
+    save(); applyLook(); syncPanel();
+    return;
+  }
   if (t.id === 'gHide') { hideNote(); return; }
   if (t.id === 'gTest') { closePanel(); setTimeout(testNote, 250); return; }
   if (t.id === 'wallClear') { putFile('wallpaper', null).then(loadWall); }
@@ -576,6 +641,7 @@ function fixHeight() {
     el.style.bottom = fix ? 'auto' : '';
   }
   document.documentElement.style.height = fix ? `${screen.height}px` : '';
+  setTimeout(() => applyLook(), 0); // højden kan have ændret sig → tegn uret igen
   renderDiag();
 }
 function renderDiag() {
