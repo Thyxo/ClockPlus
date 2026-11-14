@@ -7,7 +7,7 @@ import { createLink, cleanRoom } from './link.js';
 import { takeGoogle, visibleWord, resetMem } from './gnote.js';
 import { renderClock, hexToRgb, mix } from './glassclock.js';
 
-const VERSION = '1.3.0';
+const VERSION = '1.4.0';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -35,7 +35,7 @@ function render() {
   const now = Date.now();
   const t = shownTime(S.anchor, now);
   const c = formatClock(t, fmt());
-  if (c !== lastClock) { clockText.textContent = c; lastClock = c; drawClock(); }
+  if (c !== lastClock) { clockText.textContent = c; lastClock = c; fitAppleClock(); drawClock(); }
   const d = S.dateMode === 'date' ? formatDate(t, { cap: S.dateCap, short: S.dateShort }) : S.dateMode === 'text' ? S.dateText : '';
   if (d !== lastDate) { dateEl.textContent = d; lastDate = d; }
   renderNote(now);
@@ -49,9 +49,12 @@ function applyLook() {
   r.setProperty('--clock-size', S.size / 100);
   r.setProperty('--clock-stretch', S.stretch / 100);
   r.setProperty('--clock-y', `${S.clockY}px`);
-  const useCanvas = S.font === 'tall' || S.glass;
-  lock.className = `lock font-${S.font}${S.glass ? ' glass' : ''}${useCanvas ? ' canvas-clock' : ''}${lock.classList.contains('passcode') ? ' passcode' : ''}`;
-  r.setProperty('--tall-h', `${Math.round(lock.clientHeight * 0.41 * (S.size / 100))}px`);
+  const appleTall = S.font === 'tall' && appleFont;
+  const useCanvas = !appleTall && (S.font === 'tall' || S.glass);
+  lock.className = `lock font-${S.font}${S.glass ? ' glass' : ''}${useCanvas ? ' canvas-clock' : ''}${appleTall ? ' apple-tall' : ''}${lock.classList.contains('passcode') ? ' passcode' : ''}`;
+  const tallH = Math.round(lock.clientHeight * 0.41 * (S.size / 100));
+  r.setProperty('--tall-h', `${tallH}px`);
+  if (appleTall) fitAppleClock();
   dateEl.hidden = S.dateMode === 'none';
   padlock.style.visibility = S.showLock ? '' : 'hidden';
   $('#qbtns').hidden = !S.showButtons;
@@ -105,10 +108,17 @@ function drawClock() {
   const text = clockText.textContent;
   const tint = clockTint();
   const dpr = Math.min(3, window.devicePixelRatio || 1);
+  const rs = document.documentElement.style;
   if (S.glass) {
     const t = mix(tint, [255, 255, 255], 0.55);
-    document.documentElement.style.setProperty('--date-glass', `rgba(${t[0]},${t[1]},${t[2]},0.92)`);
+    rs.setProperty('--date-glass', `rgba(${t[0]},${t[1]},${t[2]},0.92)`);
+    const top = mix(tint, [255, 255, 255], 0.22);
+    const bot = mix(tint, [30, 48, 92], 0.5);
+    rs.setProperty('--g-top', `rgb(${top})`);
+    rs.setProperty('--g-mid', `rgb(${tint})`);
+    rs.setProperty('--g-bot', `rgb(${bot})`);
   }
+  if (S.font === 'tall' && appleFont) return; // Apples skrift tegnes som tekst (CSS + SVG-filter)
   if (S.font === 'tall') {
     const W = lock.clientWidth;
     const H = clockEl.clientHeight;
@@ -127,6 +137,52 @@ function drawClock() {
   }
 }
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => drawClock());
+
+/* ---------- Apples urskrift (valgfri, kun på telefonen) ----------
+   Apples skrifter må ikke ligge i det offentlige repo. Brugeren vælger selv filen
+   (SFAdaptiveNumeric-VF.otf fra iOS), og den gemmes kun lokalt i IndexedDB. */
+let appleFont = false;
+
+// Apples SFAdaptiveNumeric (målt i browseren): bredden afhænger ikke af HGHT, og tallenes
+// højde ≈ 0,73 × skriftstørrelse × HGHT/100, centreret 0,52 × størrelse under tekstfeltets top.
+// Bredden måles på den aktuelle tid, så uret altid fylder 86 % som på iOS.
+function fitAppleClock() {
+  if (!(S.font === 'tall' && appleFont)) return;
+  const r = document.documentElement.style;
+  const W = lock.clientWidth;
+  const tallH = lock.clientHeight * 0.41 * (S.size / 100);
+  r.setProperty('--ap-fs', '100px');
+  const range = document.createRange();
+  range.selectNodeContents(clockText);
+  const w100 = range.getBoundingClientRect().width || 225;
+  const fs = (0.86 * W * (S.size / 100)) / (w100 / 100);
+  const hg = Math.max(100, Math.min(500, (tallH / (fs * 0.73)) * 100));
+  r.setProperty('--ap-fs', `${fs.toFixed(1)}px`);
+  r.setProperty('--ap-h', hg.toFixed(0));
+}
+async function loadAppleFont() {
+  const blob = await getFile('clockfont');
+  appleFont = false;
+  if (blob) {
+    try {
+      const ff = new FontFace('AppleClock', await blob.arrayBuffer());
+      await ff.load();
+      document.fonts.add(ff);
+      appleFont = true;
+    } catch { appleFont = false; }
+  }
+  const st = $('#fontStatus');
+  if (st) st.textContent = appleFont ? 'Apples urskrift er indlæst (kun på denne telefon).' : 'Ingen fil valgt – det høje ur bruger de tegnede cifre.';
+  applyLook();
+}
+$('#fontFile').addEventListener('change', async (e) => {
+  const f = e.target.files?.[0];
+  e.target.value = '';
+  if (!f) return;
+  await putFile('clockfont', f);
+  await loadAppleFont();
+});
+$('#fontClear').addEventListener('click', async () => { await putFile('clockfont', null); await loadAppleFont(); });
 
 let wallUrl = null;
 let wallImg = null; // samme billede, til at måle lysstyrken bag fodnoten
@@ -581,7 +637,7 @@ panel.addEventListener('click', (e) => {
     return;
   }
   if (t.dataset.preset) {
-    if (t.dataset.preset === 'ios26') Object.assign(S, { font: 'tall', glass: true, weight: 600, size: 100, stretch: 100, clockY: 0, color: '#ffffff', dateShort: true, showLock: false });
+    if (t.dataset.preset === 'ios26') Object.assign(S, { font: 'tall', glass: true, weight: 760, size: 100, stretch: 100, clockY: 0, color: '#ffffff', dateShort: true, showLock: false });
     else Object.assign(S, { font: 'sf', glass: false, weight: 600, size: 100, stretch: 100, clockY: 0, color: '#ffffff', dateShort: false, showLock: true });
     save(); applyLook(); syncPanel();
     return;
@@ -832,6 +888,7 @@ buildPass();
 buildPanel();
 applyLook();
 loadWall();
+loadAppleFont();
 if (S.startBlack) sleep();
 startLink();
 setInterval(render, 250);

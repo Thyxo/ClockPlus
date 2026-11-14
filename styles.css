@@ -78,6 +78,20 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .lock.font-tall .clock { transform: none; width: 100vw; height: var(--tall-h, 41vh); margin-top: calc(6px + var(--clock-y)); }
 .lock.font-tall #clockText { display: none; }
 .lock.font-tall #clockCanvas { left: 0; top: 0; transform: none; }
+/* Apples SFAdaptiveNumeric (valgt af brugeren) */
+.lock.apple-tall #clockText {
+  display: block; visibility: visible; position: absolute; left: 0; right: 0;
+  top: calc(50% - var(--tall-h) / 2 - 20px - var(--ap-fs) * 0.52);
+  text-align: center; font-family: AppleClock; font-size: var(--ap-fs); line-height: 1; letter-spacing: 0;
+  padding: calc(var(--tall-h) / 2 + 20px) 0; /* tallene vokser op og ned: baggrunden (glasfarven) skal dække dem */
+  font-weight: normal; font-variation-settings: 'HGHT' var(--ap-h), 'wght' var(--clock-weight);
+}
+.lock.apple-tall.glass #clockText {
+  color: transparent;
+  background: linear-gradient(180deg, var(--g-top), var(--g-mid) 40%, var(--g-bot));
+  -webkit-background-clip: text; background-clip: text;
+  filter: url(#glassF);
+}
 .lock.glass .date { color: var(--date-glass, rgba(220,228,248,.92)); }
 
 .f-sf, .font-sf #clockText, .font-sf .date { font-family: var(--sf); }

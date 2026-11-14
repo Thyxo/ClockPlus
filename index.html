@@ -55,6 +55,27 @@
       </div>
     </section>
 
+    <!-- Glas-lys til Apples skrift: blød 3D-kant, lys foroven, mørk kant forneden -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <filter id="glassF" x="-4%" y="-4%" width="108%" height="108%" color-interpolation-filters="sRGB">
+        <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="b" />
+        <feSpecularLighting in="b" surfaceScale="5" specularConstant="0.85" specularExponent="22" lighting-color="#ffffff" result="spec">
+          <feDistantLight azimuth="250" elevation="52" />
+        </feSpecularLighting>
+        <feComposite in="spec" in2="SourceAlpha" operator="in" result="specIn" />
+        <feMorphology in="SourceAlpha" operator="erode" radius="3" result="er" />
+        <feGaussianBlur in="er" stdDeviation="4" result="erb" />
+        <feComposite in="SourceAlpha" in2="erb" operator="out" result="edge" />
+        <feFlood flood-color="#162250" flood-opacity="0.5" />
+        <feComposite in2="edge" operator="in" result="edgeC" />
+        <feOffset in="SourceAlpha" dy="2" result="off" />
+        <feGaussianBlur in="off" stdDeviation="5" result="sh" />
+        <feFlood flood-color="#000" flood-opacity="0.16" />
+        <feComposite in2="sh" operator="in" result="shadow" />
+        <feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /><feMergeNode in="edgeC" /><feMergeNode in="specIn" /></feMerge>
+      </filter>
+    </svg>
+
     <!-- "Slukket" skærm -->
     <div class="black" id="black" hidden></div>
   </main>
@@ -235,6 +256,13 @@
           <label class="range"><span>Højde</span><input type="range" min="100" max="200" data-s="stretch" /></label>
           <label class="range"><span>Placering</span><input type="range" min="-60" max="200" data-s="clockY" /></label>
           <div class="colors" id="colors"></div>
+          <h4>Apples urskrift (valgfri)</h4>
+          <div class="wall-row">
+            <label class="btn">Vælg skriftfil<input type="file" accept=".otf,.ttf,.woff,.woff2,font/*,application/octet-stream" id="fontFile" hidden /></label>
+            <button class="btn ghost" type="button" id="fontClear">Fjern</button>
+          </div>
+          <p class="hint" id="fontStatus"></p>
+          <p class="hint">Vælg <b>SFAdaptiveNumeric-VF.otf</b> (fra iOS 26.3-skrifterne) i Filer. Så bruger "iOS 26 høj" Apples rigtige ur-skrift. Filen gemmes kun på telefonen.</p>
           <label class="row"><span>Glas-effekt (iOS 26 – farven følger baggrunden, når farven er hvid)</span><input type="checkbox" class="sw" data-s="glass" /></label>
         </div>
 
